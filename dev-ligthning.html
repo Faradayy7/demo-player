@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+
+<head>
+    <script src="https://player.cdn.mdstrm.com/lightning_player/develop/api.js"></script>
+</head>
+
+<body>
+    <div id="player-div"></div>
+    <script>
+        loadMSPlayer('player-div', {
+            type: 'media',
+            id: '68953bd3d3afa42bdf1203a5',
+            volume: 5,
+            autoplay: true,
+            appName: 'appName'
+        }).then(player => {
+            /**
+             * Here you can use player api
+             */
+            console.log('** player loaded', player)
+        }).catch(console.error)
+    </script>
+
+
+</body>
+
+</html>

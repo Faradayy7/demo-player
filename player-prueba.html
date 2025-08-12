@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Starter – Mediastream Player (VOD + Ads + Logs)</title>
+    <style>
+        :root {
+            --bg: #0b1220;
+            --card: #121a2b;
+            --muted: #6b7a90;
+            --text: #e9eef7;
+            --accent: #5fb3ff;
+            --ok: #18c98b;
+            --warn: #ffcc66;
+            --err: #ff6b6b;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font: 14px/1.4 system-ui, Segoe UI, Roboto, Helvetica, Arial
+        }
+
+        header {
+            padding: 14px 18px;
+            border-bottom: 1px solid #1f2a44;
+            background: linear-gradient(180deg, #0f172a, #0b1220)
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600
+        }
+
+        header p {
+            margin: 4px 0 0;
+            color: var(--muted)
+        }
+
+        .wrap {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 16px;
+            padding: 16px;
+            min-height: calc(100vh - 70px)
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid #1f2a44;
+            border-radius: 14px;
+            box-shadow: 0 8px 30px #0006
+        }
+
+        .player-card {
+            padding: 12px
+        }
+
+        #mdstrm-player {
+            width: 100%;
+            min-height: 360px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #000
+        }
+
+        .controls {
+            padding: 12px;
+            display: grid;
+            gap: 12px
+        }
+
+        fieldset {
+            border: 1px dashed #223153;
+            border-radius: 10px;
+            padding: 10px
+        }
+
+        legend {
+            color: var(--muted);
+            padding: 0 6px
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center
+        }
+
+        .row>* {
+            flex: 0 0 auto
+        }
+
+        button,
+        input,
+        select {
+            background: #0e1627;
+            color: var(--text);
+            border: 1px solid #263a66;
+            border-radius: 10px;
+            padding: 8px 10px
+        }
+
+        button {
+            cursor: pointer
+        }
+
+        button.primary {
+            background: #133255;
+            border-color: #285d9e
+        }
+
+        button:disabled {
+            opacity: .5;
+            cursor: not-allowed
+        }
+
+        input[type="number"] {
+            width: 110px
+        }
+
+        input[type="text"] {
+            width: 100%
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px
+        }
+
+        .log-card {
+            display: flex;
+            flex-direction: column
+        }
+
+        .log-toolbar {
+            display: flex;
+            gap: 8px;
+            padding: 10px;
+            border-bottom: 1px solid #1f2a44
+        }
+
+        .log {
+            flex: 1 1 auto;
+            overflow: auto;
+            padding: 10px
+        }
+
+        .log ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            gap: 6px
+        }
+
+        .log li {
+            padding: 8px 10px;
+            border: 1px solid #1f2a44;
+            border-radius: 10px;
+            background: #0b1426
+        }
+
+        .evt-ready {
+            border-left: 4px solid var(--ok)
+        }
+
+        .evt-play,
+        .evt-replay {
+            border-left: 4px solid var(--accent)
+        }
+
+        .evt-end,
+        .evt-stop {
+            border-left: 4px solid var(--warn)
+        }
+
+        .evt-error,
+        .evt-ads_log {
+            border-left: 4px solid var(--err)
+        }
+
+        .evt-ads {
+            border-left: 4px solid #d3a93c
+        }
+
+        .footer {
+            padding: 10px;
+            color: var(--muted);
+            font-size: 12px;
+            border-top: 1px solid #1f2a44
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 12px
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Starter – Mediastream Player (VOD + Ads + Logs)</h1>
+        <p>Incluye: VOD, fuerza de Ads (VAST/VMAP), controles básicos y registro de eventos. Expone
+            <code>window.mdstrm</code> para automatización.
+        </p>
+    </header>
+
+    <div class="wrap">
+        <section class="card player-card">
+            <div id="mdstrm-player" aria-label="Mediastream Player"></div>
+            <div class="hint" style="margin-top:8px">Reemplaza <code>MEDIA_ID</code> por tu ID real. Si el autoplay
+                falla, prueba con volumen=0 y sube tras una interacción.</div>
+        </section>
+
+        <section class="card controls">
+            <fieldset>
+                <legend>Inicialización</legend>
+                <div class="grid-2">
+                    <label class="row" title="ID de media de la plataforma o youtube:VIDEOID">
+                        <span style="min-width:90px">Media ID</span>
+                        <input id="inpMediaId" type="text" value="53453a861536b4526c9bd16e" />
+                    </label>
+                    <label class="row">
+                        <span style="min-width:90px">Tipo</span>
+                        <select id="selType">
+                            <option value="media" selected>media</option>
+                            <option value="live">live</option>
+                            <option value="dvr">dvr</option>
+                        </select>
+                    </label>
+                    <label class="row">
+                        <span style="min-width:90px">Ancho</span>
+                        <input id="inpW" type="number" value="800" min="320" />
+                    </label>
+                    <label class="row">
+                        <span style="min-width:90px">Alto</span>
+                        <input id="inpH" type="number" value="450" min="180" />
+                    </label>
+                </div>
+                <div class="row" style="margin-top:8px">
+                    <button id="btnInit" class="primary">Crear/Reset Player</button>
+                    <label class="row" style="gap:6px">
+                        <input id="chkAutoplay" type="checkbox" /> Autoplay
+                    </label>
+                    <label class="row" style="gap:6px">
+                        Volumen inicial <input id="inpInitVol" type="number" value="40" min="0" max="100" />
+                    </label>
+                    <label class="row" style="gap:6px">
+                        Start time (s) <input id="inpStart" type="number" value="0" min="0" />
+                    </label>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Controles</legend>
+                <div class="row">
+                    <button id="btnPlay" disabled>Play</button>
+                    <button id="btnPause" disabled>Pausa</button>
+                    <button id="btnFs" disabled>FullScreen</button>
+                </div>
+                <div class="row">
+                    <button id="btnVolDown" disabled>- Vol</button>
+                    <button id="btnVolUp" disabled>+ Vol</button>
+                    <span id="lblVol" class="hint">vol: —</span>
+                </div>
+                <div class="row">
+                    <label>Seek (s)
+                        <input id="inpSeek" type="number" value="30" min="0" />
+                    </label>
+                    <button id="btnSeek" disabled>Ir</button>
+                    <button id="btnSeekFwd" disabled>+30s</button>
+                </div>
+                <div class="row">
+                    <label>Calidad
+                        <select id="selQuality" disabled></select>
+                    </label>
+                    <button id="btnReloadLevels" disabled>Recargar niveles</button>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Ads</legend>
+                <div class="row" style="width:100%">
+                    <input id="inpAdUrl" type="text" placeholder="Pega aquí tu VAST/VMAP URL" value="" />
+                    <button id="btnReqAds" disabled>requestAds()</button>
+                </div>
+            </fieldset>
+        </section>
+
+        <section class="card log-card" style="grid-column: 1 / -1">
+            <div class="log-toolbar">
+                <button id="btnClear">Limpiar log</button>
+                <button id="btnPauseLog">Pausar log</button>
+                <span class="hint">Se expone <code>window.mdstrm = { player, eventLog, clearLog }</code></span>
+            </div>
+            <div class="log" id="log">
+                <ul id="logList"></ul>
+            </div>
+            <div class="footer">Eventos clave: ready, play, end, stop, error, time, fs, ads_* | Volumen y tiempo se
+                muestran de forma moderada para evitar ruido.</div>
+        </section>
+    </div>
+
+    <!-- Player API -->
+    <script src="https://platform-static.cdn.mdstrm.com/js/player_api.js"></script>
+    <script>
+        /** UTIL: Log visual + memoria **/
+        const eventLog = [];
+        let logPaused = false;
+        const $logList = () => document.getElementById('logList');
+        function classFor(evt) {
+            if (/^ads/i.test(evt)) return 'evt-ads';
+            return {
+                ready: 'evt-ready', play: 'evt-play', replay: 'evt-replay', end: 'evt-end', stop: 'evt-stop', error: 'evt-error',
+            }[evt] || '';
+        }
+        function addLog(evt, payload) {
+            const entry = { t: new Date(), evt, payload };
+            eventLog.push(entry);
+            if (logPaused) return;
+            const li = document.createElement('li');
+            li.className = classFor(evt);
+            li.innerHTML = `<strong>${evt}</strong> <span class="hint" style="margin-left:6px">${entry.t.toLocaleTimeString()}</span><div class="hint">${(typeof payload === 'object') ? JSON.stringify(payload) : payload ?? ''}</div>`;
+            // Insertar al principio de la lista
+            const logList = $logList();
+            if (logList.firstChild) {
+                logList.insertBefore(li, logList.firstChild);
+            } else {
+                logList.appendChild(li);
+            }
+            // autoscroll al tope
+            const container = document.getElementById('log');
+            container.scrollTop = 0;
+            console.log('[LOG]', evt, payload);
+        }
+        function clearLog() { $logList().innerHTML = ''; eventLog.length = 0; addLog('ready-ui', 'Log limpio'); }
+
+        // Expose for automation
+        window.mdstrm = { player: null, eventLog, clearLog };
+
+        /** STATE **/
+        let player = null;
+        let isReady = false;
+        let lastLoggedSecond = -1; // para amortiguar onTimeUpdate
+
+        /** DOM refs **/
+        const $ = (id) => document.getElementById(id);
+        const btnInit = $('btnInit');
+        const btnPlay = $('btnPlay');
+        const btnPause = $('btnPause');
+        const btnFs = $('btnFs');
+        const btnVolUp = $('btnVolUp');
+        const btnVolDown = $('btnVolDown');
+        const lblVol = $('lblVol');
+        const btnSeek = $('btnSeek');
+        const btnSeekFwd = $('btnSeekFwd');
+        const inpSeek = $('inpSeek');
+        const selQuality = $('selQuality');
+        const btnReloadLevels = $('btnReloadLevels');
+        const inpAdUrl = $('inpAdUrl');
+        const btnReqAds = $('btnReqAds');
+        const btnClear = $('btnClear');
+        const btnPauseLog = $('btnPauseLog');
+
+        function setControlsEnabled(enabled) {
+            [btnPlay, btnPause, btnFs, btnVolUp, btnVolDown, btnSeek, btnSeekFwd, selQuality, btnReloadLevels, btnReqAds]
+                .forEach(el => el.disabled = !enabled);
+        }
+
+        function initPlayer() {
+            // limpiar anterior
+            if (player) { try { document.getElementById('mdstrm-player').innerHTML = ''; } catch (e) { }; player = null; isReady = false; }
+
+            const options = {
+                width: Number($('inpW').value) || 800,
+                height: Number($('inpH').value) || 450,
+                type: $('selType').value,
+                id: $('inpMediaId').value || 'MEDIA_ID',
+                autoplay: $('chkAutoplay').checked,
+                volume: Math.max(0, Math.min(100, Number($('inpInitVol').value) || 0)),
+                starttime: Math.max(0, Number($('inpStart').value) || 0),
+                pause_on_screen_click: true,
+                events: {
+                    onPlayerReady: () => {
+                        isReady = true;
+                        setControlsEnabled(true);
+                        addLog('ready', { levels: safeLevels() });
+                        // poblar calidades si hay
+                        populateLevels();
+                    },
+                    onPlay: () => addLog('play'),
+                    onReplay: () => addLog('replay'),
+                    onVideoEnd: () => addLog('end'),
+                    onVideoStop: () => addLog('stop'),
+                    onVideoError: () => addLog('error'),
+                    onVolumeChange: (v) => { lblVol.textContent = `vol: ${v}`; addLog('volume', v); },
+                    onTimeUpdate: (t) => {
+                        try {
+                            const s = Math.floor(Number(t) || 0);
+                            if (s !== lastLoggedSecond && (s % 1 === 0)) { // cada segundo
+                                lastLoggedSecond = s;
+                                addLog('time', s);
+                            }
+                        } catch (e) {/*noop*/ }
+                    },
+                    onFullscreenChange: (fs) => addLog('fs', fs),
+                    onMetadata: (meta) => addLog('metadata', meta),
+                    // Ads
+                    onAdsAdBreakReady: (d) => addLog('ads_adbreak_ready', d),
+                    onAdsAdMetadata: (d) => addLog('ads_admetadata', d),
+                    onAdsAllAdsCompleted: () => addLog('ads_all_completed'),
+                    onAdsClick: () => addLog('ads_click'),
+                    onAdsComplete: () => addLog('ads_complete'),
+                    onAdsContentPauseRequested: () => addLog('ads_content_pause'),
+                    onAdsContentResumeRequested: () => addLog('ads_content_resume'),
+                    onAdsDurationChange: (d) => addLog('ads_duration_change', d),
+                    onAdsFirstQuartile: () => addLog('ads_q1'),
+                    onAdsImpression: () => addLog('ads_impression'),
+                    onAdsLinearChanged: () => addLog('ads_linear_changed'),
+                    onAdsLoaded: (d) => addLog('ads_loaded', d),
+                    onAdsLog: (d) => addLog('ads_log', d),
+                    onAdsMidpoint: () => addLog('ads_midpoint'),
+                    onAdsPaused: () => addLog('ads_paused'),
+                    onAdsResumed: () => addLog('ads_resumed'),
+                    onAdsSkippableStateChanged: () => addLog('ads_skippable_changed'),
+                    onAdsSkipped: () => addLog('ads_skipped'),
+                    onAdsStarted: () => addLog('ads_started'),
+                    onAdsThirdQuartile: () => addLog('ads_q3'),
+                    onAdsUserClose: () => addLog('ads_user_close'),
+                    onAdsVolumeChanged: () => addLog('ads_volume_changed'),
+                    onAdsVolumeMuted: () => addLog('ads_volume_muted'),
+                }
+            };
+
+            player = new MediastreamPlayer('mdstrm-player', options);
+            window.mdstrm.player = player;
+            addLog('init', { type: options.type, id: options.id });
+        }
+
+        function safeLevels() {
+            try { return player?.playbackLevels?.() || []; } catch (e) { return []; }
+        }
+        function populateLevels() {
+            selQuality.innerHTML = '';
+            const levels = safeLevels();
+            if (levels.length === 0) { selQuality.disabled = true; return; }
+            levels.forEach((lvl, idx) => {
+                const opt = document.createElement('option');
+                opt.value = String(idx);
+                opt.textContent = typeof lvl === 'string' ? lvl : (lvl?.label || `Nivel ${idx}`);
+                selQuality.appendChild(opt);
+            });
+            selQuality.disabled = false;
+            addLog('levels', levels);
+        }
+
+        /** Wiring **/
+        btnInit.addEventListener('click', initPlayer);
+        btnPlay.addEventListener('click', () => player?.videoPlay());
+        btnPause.addEventListener('click', () => player?.videoStop());
+        btnFs.addEventListener('click', () => player?.toggleFullScreen());
+        btnVolUp.addEventListener('click', () => player?.setVolume?.(Math.min(100, (Number((/\d+/.exec(lblVol.textContent) || ['0'])[0])) + 10)));
+        btnVolDown.addEventListener('click', () => player?.setVolume?.(Math.max(0, (Number((/\d+/.exec(lblVol.textContent) || ['0'])[0])) - 10)));
+        btnSeek.addEventListener('click', () => player?.seekTo?.(Number(inpSeek.value) || 0));
+        btnSeekFwd.addEventListener('click', async () => {
+            if (!player?.getCurrentTime) return;
+            player.getCurrentTime((t) => player.seekTo((Number(t) || 0) + 30));
+        });
+        btnReloadLevels.addEventListener('click', populateLevels);
+        selQuality.addEventListener('change', () => player?.playbackLevel?.(Number(selQuality.value) || 0));
+        btnReqAds.addEventListener('click', () => {
+            const url = inpAdUrl.value.trim();
+            if (url) { addLog('ads_request', url); player?.requestAds?.(url); }
+        });
+
+        btnClear.addEventListener('click', clearLog);
+        btnPauseLog.addEventListener('click', () => {
+            logPaused = !logPaused; btnPauseLog.textContent = logPaused ? 'Reanudar log' : 'Pausar log';
+        });
+
+        // Auto-init con valores por defecto
+        window.addEventListener('DOMContentLoaded', () => initPlayer());
+    </script>
+</body>
+
+</html>

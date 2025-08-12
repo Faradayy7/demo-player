@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+    <script src="https://platform-devel.s-mdstrm.com/js/player_api.js"></script>
+    <div id="mdstrm-player"></div>
+    <script>
+        window.EMBED_HOST = "develop.mdstrm.com";
+        var playerOptions = {
+            width: 640, // Width in pixels
+            height: 360, // Height in pixels
+            type: "media",
+            // Video type. Possible values: "media", "live"
+            id: "68953bd3d3afa42bdf1203a5",
+            //className: "esta es una prueba desde staging",
+            //useDataSrc: true,
+            player: "671158e9d5b2393ff6332f1b",
+            autoplay: true, // Enable autoplay. Possible values: true, false
+
+        };
+
+        var player = new MediastreamPlayer("mdstrm-player", playerOptions);
+
+        // Player can be controlled using the API's methods
+        player.videoPlay();
+    </script>
+</body>
+
+</html>
