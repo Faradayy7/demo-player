@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lightning Player Demo (VOD + Logs)</title>
+    <style>
+        :root {
+            --bg: #0b1220;
+            --card: #121a2b;
+            --muted: #6b7a90;
+            --text: #e9eef7;
+            --accent: #5fb3ff;
+            --ok: #18c98b;
+            --warn: #ffcc66;
+            --err: #ff6b6b;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font: 14px/1.4 system-ui, Segoe UI, Roboto, Helvetica, Arial
+        }
+
+        header {
+            padding: 14px 18px;
+            border-bottom: 1px solid #1f2a44;
+            background: linear-gradient(180deg, #0f172a, #0b1220)
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600
+        }
+
+        header p {
+            margin: 4px 0 0;
+            color: var(--muted)
+        }
+
+        .wrap {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 16px;
+            padding: 16px;
+            min-height: calc(100vh - 70px)
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid #1f2a44;
+            border-radius: 14px;
+            box-shadow: 0 8px 30px #0006
+        }
+
+        .player-card {
+            padding: 12px
+        }
+
+        #lightning-player {
+            width: 100%;
+            min-height: 360px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #000
+        }
+
+        .controls {
+            padding: 12px;
+            display: grid;
+            gap: 12px
+        }
+
+        fieldset {
+            border: 1px dashed #223153;
+            border-radius: 10px;
+            padding: 10px
+        }
+
+        legend {
+            color: var(--muted);
+            padding: 0 6px
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center
+        }
+
+        .row>* {
+            flex: 0 0 auto
+        }
+
+        button,
+        input,
+        select {
+            background: #0e1627;
+            color: var(--text);
+            border: 1px solid #263a66;
+            border-radius: 10px;
+            padding: 8px 10px
+        }
+
+        button {
+            cursor: pointer
+        }
+
+        button.primary {
+            background: #133255;
+            border-color: #285d9e
+        }
+
+        button:disabled {
+            opacity: .5;
+            cursor: not-allowed
+        }
+
+        input[type="number"] {
+            width: 110px
+        }
+
+        input[type="text"] {
+            width: 100%
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px
+        }
+
+        .log-card {
+            display: flex;
+            flex-direction: column
+        }
+
+        .log-toolbar {
+            display: flex;
+            gap: 8px;
+            padding: 10px;
+            border-bottom: 1px solid #1f2a44
+        }
+
+        .log {
+            flex: 1 1 auto;
+            overflow: auto;
+            padding: 10px
+        }
+
+        .log ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            gap: 6px
+        }
+
+        .log li {
+            padding: 8px 10px;
+            border: 1px solid #1f2a44;
+            border-radius: 10px;
+            background: #0b1426
+        }
+
+        .evt-ready {
+            border-left: 4px solid var(--ok)
+        }
+
+        .evt-play,
+        .evt-replay {
+            border-left: 4px solid var(--accent)
+        }
+
+        .evt-end,
+        .evt-stop {
+            border-left: 4px solid var(--warn)
+        }
+
+        .evt-error,
+        .evt-ads_log {
+            border-left: 4px solid var(--err)
+        }
+
+        .evt-ads {
+            border-left: 4px solid #d3a93c
+        }
+
+        .footer {
+            padding: 10px;
+            color: var(--muted);
+            font-size: 12px;
+            border-top: 1px solid #1f2a44
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 12px
+        }
+    </style>
+    <script src="https://player.cdn.mdstrm.com/lightning_player/develop/api.js"></script>
+</head>
+
+<body>
+    <header>
+        <h1>Lightning Player Demo (VOD + Logs)</h1>
+        <p>Incluye: VOD, controles básicos y registro de eventos. Usa Lightning Player API.</p>
+    </header>
+    <div class="wrap">
+        <section class="card player-card">
+            <div id="lightning-player" aria-label="Lightning Player"></div>
+            <div class="hint" style="margin-top:8px">Reemplaza <code>MEDIA_ID</code> y <code>PLAYER_ID</code> por los
+                reales.</div>
+        </section>
+        <section class="card controls">
+            <fieldset>
+                <legend>Inicialización</legend>
+                <div class="grid-2">
+                    <label class="row" title="ID de media de la plataforma">
+                        <span style="min-width:90px">Media ID</span>
+                        <input id="inpMediaId" type="text" value="68953bd3d3afa42bdf1203a5" />
+                    </label>
+                    <label class="row">
+                        <span style="min-width:90px">Player ID</span>
+                        <input id="inpPlayerId" type="text" value="689e2cd7f00ede9f64370c1d" />
+                    </label>
+                    <label class="row">
+                        <span style="min-width:90px">Tipo</span>
+                        <select id="inpType">
+                            <option value="media">media (VOD)</option>
+                            <option value="live">live</option>
+                        </select>
+                    </label>
+                    <label class="row">
+                        <span style="min-width:90px">Ancho</span>
+                        <input id="inpW" type="number" value="800" min="320" />
+                    </label>
+                    <label class="row">
+                        <span style="min-width:90px">Alto</span>
+                        <input id="inpH" type="number" value="450" min="180" />
+                    </label>
+                </div>
+                <div class="row" style="margin-top:8px">
+                    <button id="btnInit" class="primary">Crear/Reset Player</button>
+                    <label class="row" style="gap:6px">
+                        <input id="chkAutoplay" type="checkbox" /> Autoplay
+                    </label>
+                </div>
+            </fieldset>
+            <fieldset>
+                <legend>Controles</legend>
+                <div class="row">
+                    <button id="btnPlay" disabled>Play</button>
+                    <button id="btnPause" disabled>Pausa</button>
+                    <button id="btnStop" disabled>Stop</button>
+                    <button id="btnFs" disabled>FullScreen</button>
+                </div>
+                <div class="row">
+                    <button id="btnVolDown" disabled>- Vol</button>
+                    <button id="btnVolUp" disabled>+ Vol</button>
+                    <span id="lblVol" class="hint">vol: —</span>
+                    <input id="inpSetVol" type="number" value="50" min="0" max="100" style="width:60px" />
+                    <button id="btnSetVol" disabled>Set Vol</button>
+                </div>
+                <div class="row">
+                    <label>Seek (s)
+                        <input id="inpSeek" type="number" value="30" min="0" />
+                    </label>
+                    <button id="btnSeek" disabled>Ir (seek)</button>
+                </div>
+                <div class="row">
+                    <button id="btnIsReady" disabled>isReady?</button>
+                    <button id="btnIsPlaying" disabled>isPlaying?</button>
+                    <button id="btnGetCurrentTime" disabled>getCurrentTime</button>
+                </div>
+                <div class="row">
+                    <input id="inpAdUrl" type="text" placeholder="VAST/VMAP URL" style="width:180px" />
+                    <button id="btnReqAds" disabled>requestAds()</button>
+                    <input id="inpAdsVol" type="number" value="50" min="0" max="100" style="width:60px" />
+                    <button id="btnSetAdsVol" disabled>setAdsVolume</button>
+                </div>
+                <div class="row">
+                    <label>Calidad
+                        <select id="selQuality" disabled></select>
+                    </label>
+                    <button id="btnReloadLevels" disabled>Recargar niveles</button>
+                </div>
+            </fieldset>
+        </section>
+        <section class="card log-card" style="grid-column: 1 / -1">
+            <div class="log-toolbar">
+                <button id="btnClear">Limpiar log</button>
+                <button id="btnPauseLog">Pausar log</button>
+                <span class="hint">Se expone <code>window.lightning = { player, eventLog, clearLog }</code></span>
+            </div>
+            <div class="log" id="log">
+                <ul id="logList"></ul>
+            </div>
+            <div class="footer">Eventos clave: ready, play, pause, end, error, timeupdate, volumechange, seeked.</div>
+        </section>
+    </div>
+    <script>
+        // Logica de log
+        const eventLog = [];
+        let logPaused = false;
+        const $logList = () => document.getElementById('logList');
+        function classFor(evt) {
+            if (/^ads/i.test(evt)) return 'evt-ads';
+            return {
+                ready: 'evt-ready', play: 'evt-play', pause: 'evt-replay', end: 'evt-end', error: 'evt-error',
+            }[evt] || '';
+        }
+        function addLog(evt, payload) {
+            const entry = { t: new Date(), evt, payload };
+            eventLog.push(entry);
+            if (logPaused) return;
+            const li = document.createElement('li');
+            li.className = classFor(evt);
+            li.innerHTML = `<strong>${evt}</strong> <span class="hint" style="margin-left:6px">${entry.t.toLocaleTimeString()}</span><div class="hint">${(typeof payload === 'object') ? JSON.stringify(payload) : payload ?? ''}</div>`;
+            const logList = $logList();
+            if (logList.firstChild) {
+                logList.insertBefore(li, logList.firstChild);
+            } else {
+                logList.appendChild(li);
+            }
+            const container = document.getElementById('log');
+            container.scrollTop = 0;
+            console.log('[LOG]', evt, payload);
+        }
+        function clearLog() { $logList().innerHTML = ''; eventLog.length = 0; addLog('ready-ui', 'Log limpio'); }
+        window.lightning = { player: null, eventLog, clearLog };
+        // Estado y refs
+        let player = null;
+        let isReady = false;
+        const $ = (id) => document.getElementById(id);
+        const btnInit = $('btnInit');
+        const btnPlay = $('btnPlay');
+        const btnPause = $('btnPause');
+        const btnVolUp = $('btnVolUp');
+        const btnVolDown = $('btnVolDown');
+        const lblVol = $('lblVol');
+        const btnSeek = $('btnSeek');
+        const inpSeek = $('inpSeek');
+        const btnClear = $('btnClear');
+        const btnPauseLog = $('btnPauseLog');
+        function setControlsEnabled(enabled) {
+            [btnPlay, btnPause, btnStop, btnFs, btnVolUp, btnVolDown, btnSeek, btnSetVol, btnIsReady, btnIsPlaying, btnGetCurrentTime, btnReqAds, btnSetAdsVol, selQuality, btnReloadLevels].forEach(el => el.disabled = !enabled);
+        }
+        function safeLevels() {
+            try { return player?.playbackLevels?.() || []; } catch (e) { return []; }
+        }
+        function populateLevels() {
+            selQuality.innerHTML = '';
+            const levels = safeLevels();
+            if (levels.length === 0) { selQuality.disabled = true; return; }
+            levels.forEach((lvl, idx) => {
+                const opt = document.createElement('option');
+                opt.value = String(idx);
+                opt.textContent = typeof lvl === 'string' ? lvl : (lvl?.label || `Nivel ${idx}`);
+                selQuality.appendChild(opt);
+            });
+            selQuality.disabled = false;
+            addLog('levels', levels);
+        }
+        function initPlayer() {
+            if (player) { try { document.getElementById('lightning-player').innerHTML = ''; } catch (e) { }; player = null; isReady = false; }
+            const options = {
+                width: Number($('inpW').value) || 800,
+                height: Number($('inpH').value) || 450,
+                type: $('inpType')?.value || 'media',
+                id: $('inpMediaId').value || 'MEDIA_ID',
+                player: $('inpPlayerId').value || 'PLAYER_ID',
+                autoplay: $('chkAutoplay').checked,
+                appName: 'appName',
+            };
+            loadMSPlayer('lightning-player', options).then(p => {
+                player = p;
+                window.lightning.player = player;
+                setControlsEnabled(true);
+                addLog('ready', options);
+                // Eventos principales
+                player.on('play', () => addLog('play'));
+                player.on('pause', () => addLog('pause'));
+                player.on('ended', () => addLog('end'));
+                player.on('error', (e) => addLog('error', e));
+                player.on('timeupdate', (t) => {
+                    // Mostrar solo segundos enteros
+                    let sec = t;
+                    if (typeof t === 'number') sec = Math.floor(t);
+                    addLog('timeupdate', sec);
+                });
+                player.on('volumechange', (v) => { lblVol.textContent = `vol: ${Math.round((v ?? 0) * 100)}`; addLog('volumechange', v); });
+                player.on('seeked', (t) => addLog('seeked', t));
+                // Eventos de Ads
+                const adsEvents = [
+                    'adsAdBreakReady',
+                    'adsAdMetadata',
+                    'adsAllAdsCompleted',
+                    'adsClick',
+                    'adsComplete',
+                    'adsContentPauseRequested',
+                    'adsContentResumeRequested',
+                    'adsDurationChange',
+                    'adsFirstQuartile',
+                    'adsImpression',
+                    'adsLinearChanged',
+                    'adsLoaded',
+                    'adsLog',
+                    'adsMidpoint',
+                    'adsPaused',
+                    'adsResumed',
+                    'adsSkippableStateChanged',
+                    'adsSkipped',
+                    'adsStarted',
+                    'adsThirdQuartile',
+                    'adsTimeUpdate',
+                    'adsUserClose',
+                    'adsVolumeChanged',
+                    'adsVolumeMuted',
+                    'adsError',
+                    'adsAdBuffering',
+                    'adsAdProgress',
+                    'adsInteraction',
+                    'adsVideoClicked',
+                    'adsVideoIconClicked'
+                ];
+                adsEvents.forEach(evt => {
+                    player.on(evt, (data) => addLog(evt, data || {}));
+                });
+                // poblar calidades si hay
+                populateLevels();
+            }).catch(e => { addLog('error', e); setControlsEnabled(false); });
+            addLog('init', options);
+        }
+        // Referencias a nuevos controles
+        const btnStop = $('btnStop');
+        const btnFs = $('btnFs');
+        const btnSetVol = $('btnSetVol');
+        const inpSetVol = $('inpSetVol');
+        const btnIsReady = $('btnIsReady');
+        const btnIsPlaying = $('btnIsPlaying');
+        const btnGetCurrentTime = $('btnGetCurrentTime');
+        const inpAdUrl = $('inpAdUrl');
+        const btnReqAds = $('btnReqAds');
+        const inpAdsVol = $('inpAdsVol');
+        const btnSetAdsVol = $('btnSetAdsVol');
+        const selQuality = $('selQuality');
+        const btnReloadLevels = $('btnReloadLevels');
+
+        btnInit.addEventListener('click', initPlayer);
+        btnPlay.addEventListener('click', () => player?.play?.());
+        btnPause.addEventListener('click', () => player?.pause?.());
+        btnStop.addEventListener('click', () => { player?.stop?.(); addLog('stop'); });
+        btnFs.addEventListener('click', () => player?.toggleFullScreen?.());
+        btnVolUp.addEventListener('click', () => {
+            if (player?.getVolume && player?.setVolume) {
+                let v = player.getVolume();
+                if (typeof v === 'function') v = v();
+                v = Math.min(1, (v ?? 0) + 0.1);
+                player.setVolume(v);
+            }
+        });
+        btnVolDown.addEventListener('click', () => {
+            if (player?.getVolume && player?.setVolume) {
+                let v = player.getVolume();
+                if (typeof v === 'function') v = v();
+                v = Math.max(0, (v ?? 0) - 0.1);
+                player.setVolume(v);
+            }
+        });
+        btnSetVol.addEventListener('click', () => {
+            if (player?.setVolume) {
+                let v = Number(inpSetVol.value);
+                if (v > 1) v = v / 100;
+                player.setVolume(v);
+            }
+        });
+        btnSeek.addEventListener('click', () => player?.seek?.(Number(inpSeek.value) || 0));
+        btnIsReady.addEventListener('click', () => addLog('isReady', player?.isReady?.()));
+        btnIsPlaying.addEventListener('click', () => addLog('isPlaying', player?.isPlaying?.()));
+        btnGetCurrentTime.addEventListener('click', () => {
+            if (player?.getCurrentTime) {
+                let t = player.getCurrentTime();
+                if (typeof t === 'function') t = t();
+                addLog('getCurrentTime', t);
+            }
+        });
+        btnReqAds.addEventListener('click', () => {
+            const url = inpAdUrl.value.trim();
+            if (!url) {
+                addLog('ads_request_error', 'URL vacía');
+                return;
+            }
+            if (typeof player?.requestAds === 'function') {
+                // Algunos players requieren el volumen de ads antes de pedir ads
+                if (typeof player.setAdsVolume === 'function') {
+                    let v = Number(inpAdsVol.value);
+                    if (v > 1) v = v / 100;
+                    player.setAdsVolume(v);
+                }
+                // Lightning Player puede requerir que el video esté en play antes de ads
+                if (typeof player.isPlaying === 'function' && !player.isPlaying()) {
+                    if (typeof player.play === 'function') player.play();
+                }
+                setTimeout(() => {
+                    try {
+                        addLog('ads_request', url);
+                        player.requestAds(url);
+                    } catch (e) {
+                        addLog('ads_request_error', 'Error al solicitar anuncio: ' + (e && e.message ? e.message : e));
+                    }
+                }, 300); // pequeño delay para asegurar play
+            } else {
+                addLog('ads_request_error', 'Método requestAds no disponible en el player');
+            }
+        });
+        btnSetAdsVol.addEventListener('click', () => {
+            if (player?.setAdsVolume) {
+                let v = Number(inpAdsVol.value);
+                if (v > 1) v = v / 100;
+                player.setAdsVolume(v);
+            }
+        });
+        selQuality.addEventListener('change', () => player?.playbackLevel?.(Number(selQuality.value) || 0));
+        btnReloadLevels.addEventListener('click', populateLevels);
+        btnClear.addEventListener('click', clearLog);
+        btnPauseLog.addEventListener('click', () => { logPaused = !logPaused; btnPauseLog.textContent = logPaused ? 'Reanudar log' : 'Pausar log'; });
+        window.addEventListener('DOMContentLoaded', () => initPlayer());
+    </script>
+</body>
+
+</html>
