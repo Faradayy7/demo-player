@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lightning Audio Player Demo</title>
+    <style>
+        :root {
+            --bg: #0b1220;
+            --card: #121a2b;
+            --muted: #6b7a90;
+            --text: #e9eef7;
+            --accent: #5fb3ff;
+            --ok: #18c98b;
+            --warn: #ffcc66;
+            --err: #ff6b6b;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font: 14px/1.4 system-ui, Segoe UI, Roboto, Helvetica, Arial
+        }
+
+        header {
+            padding: 14px 18px;
+            border-bottom: 1px solid #1f2a44;
+            background: linear-gradient(180deg, #0f172a, #0b1220)
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600
+        }
+
+        header p {
+            margin: 4px 0 0;
+            color: var(--muted)
+        }
+
+        .wrap {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 16px;
+            padding: 16px;
+            min-height: calc(100vh - 70px)
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid #1f2a44;
+            border-radius: 14px;
+            box-shadow: 0 8px 30px #0006
+        }
+
+        .player-card {
+            padding: 12px
+        }
+
+        #audio-player {
+            width: 100%;
+            min-height: 80px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #000
+        }
+
+        .controls {
+            padding: 12px;
+            display: grid;
+            gap: 12px
+        }
+
+        fieldset {
+            border: 1px dashed #223153;
+            border-radius: 10px;
+            padding: 10px
+        }
+
+        legend {
+            color: var(--muted);
+            padding: 0 6px
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center
+        }
+
+        .row>* {
+            flex: 0 0 auto
+        }
+
+        button,
+        input,
+        select {
+            background: #0e1627;
+            color: var(--text);
+            border: 1px solid #263a66;
+            border-radius: 10px;
+            padding: 8px 10px
+        }
+
+        button {
+            cursor: pointer
+        }
+
+        button.primary {
+            background: #133255;
+            border-color: #285d9e
+        }
+
+        button:disabled {
+            opacity: .5;
+            cursor: not-allowed
+        }
+
+        input[type="number"] {
+            width: 110px
+        }
+
+        input[type="text"] {
+            width: 100%
+        }
+
+        .log-card {
+            display: flex;
+            flex-direction: column
+        }
+
+        .log-toolbar {
+            display: flex;
+            gap: 8px;
+            padding: 10px;
+            border-bottom: 1px solid #1f2a44
+        }
+
+        .log {
+            flex: 1 1 auto;
+            overflow: auto;
+            padding: 10px
+        }
+
+        .log ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            gap: 6px
+        }
+
+        .log li {
+            padding: 8px 10px;
+            border: 1px solid #1f2a44;
+            border-radius: 10px;
+            background: #0b1426
+        }
+
+        .evt-ready {
+            border-left: 4px solid var(--ok)
+        }
+
+        .evt-play,
+        .evt-replay {
+            border-left: 4px solid var(--accent)
+        }
+
+        .evt-end,
+        .evt-stop {
+            border-left: 4px solid var(--warn)
+        }
+
+        .evt-error,
+        .evt-ads_log {
+            border-left: 4px solid var(--err)
+        }
+
+        .footer {
+            padding: 10px;
+            color: var(--muted);
+            font-size: 12px;
+            border-top: 1px solid #1f2a44
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 12px
+        }
+    </style>
+    <script src="https://player.cdn.mdstrm.com/lightning_player/develop/api.js"></script>
+</head>
+
+<body>
+    <header>
+        <h1>Lightning Audio Player Demo</h1>
+        <p>Incluye: audio, controles básicos y registro de eventos. Usa Lightning Player API.</p>
+    </header>
+    <div class="wrap">
+        <section class="card player-card">
+            <div id="audio-player" aria-label="Lightning Audio Player"></div>
+            <div class="hint" style="margin-top:8px">Reemplaza <code>MEDIA_ID</code> por el real.</div>
+        </section>
+        <section class="card controls">
+            <fieldset>
+                <legend>Inicialización</legend>
+                <div class="grid-2">
+                    <label class="row" title="ID de media de la plataforma">
+                        <span style="min-width:90px">Media ID</span>
+                        <input id="inpMediaId" type="text" value="68951a77026a13f975468388" />
+                    </label>
+                </div>
+                <div class="row" style="margin-top:8px">
+                    <button id="btnInit" class="primary">Crear/Reset Player</button>
+                    <label class="row" style="gap:6px">
+                        <input id="chkAutoplay" type="checkbox" /> Autoplay
+                    </label>
+                </div>
+            </fieldset>
+            <fieldset>
+                <legend>Controles</legend>
+                <div class="row">
+                    <button id="btnPlay" disabled>Play</button>
+                    <button id="btnPause" disabled>Pausa</button>
+                    <button id="btnDestroy" disabled>Destroy</button>
+                </div>
+                <div class="row">
+                    <button id="btnLoad" disabled>Load</button>
+                    <button id="btnAddToPlaylist" disabled>AddToPlaylist</button>
+                </div>
+                <div class="row">
+                    <button id="btnOn" disabled>on(play)</button>
+                    <button id="btnOnce" disabled>once(pause)</button>
+                    <button id="btnOff" disabled>off(play)</button>
+                </div>
+            </fieldset>
+        </section>
+        <section class="card log-card" style="grid-column: 1 / -1">
+            <div class="log-toolbar">
+                <button id="btnClear">Limpiar log</button>
+            </div>
+            <div class="log" id="log">
+                <ul id="logList"></ul>
+            </div>
+            <div class="footer">Eventos clave: ready, play, pause, end, error.</div>
+        </section>
+    </div>
+    <script>
+        const eventLog = [];
+        const $logList = () => document.getElementById('logList');
+        function classFor(evt) {
+            return {
+                ready: 'evt-ready', play: 'evt-play', pause: 'evt-replay', end: 'evt-end', error: 'evt-error',
+            }[evt] || '';
+        }
+        function addLog(evt, payload) {
+            const entry = { t: new Date(), evt, payload };
+            eventLog.push(entry);
+            const li = document.createElement('li');
+            li.className = classFor(evt);
+            li.innerHTML = `<strong>${evt}</strong> <span class="hint" style="margin-left:6px">${entry.t.toLocaleTimeString()}</span><div class="hint">${(typeof payload === 'object') ? JSON.stringify(payload) : payload ?? ''}</div>`;
+            const logList = $logList();
+            if (logList.firstChild) {
+                logList.insertBefore(li, logList.firstChild);
+            } else {
+                logList.appendChild(li);
+            }
+            const container = document.getElementById('log');
+            container.scrollTop = 0;
+            console.log('[LOG]', evt, payload);
+        }
+        function clearLog() { $logList().innerHTML = ''; eventLog.length = 0; addLog('ready-ui', 'Log limpio'); }
+        let player = null;
+        const $ = (id) => document.getElementById(id);
+        const btnInit = $('btnInit');
+        const btnPlay = $('btnPlay');
+        const btnPause = $('btnPause');
+        const btnDestroy = $('btnDestroy');
+        const btnLoad = $('btnLoad');
+        const btnAddToPlaylist = $('btnAddToPlaylist');
+        const btnOn = $('btnOn');
+        const btnOnce = $('btnOnce');
+        const btnOff = $('btnOff');
+        const btnClear = $('btnClear');
+        function setControlsEnabled(enabled) {
+            [btnPlay, btnPause, btnDestroy, btnLoad, btnAddToPlaylist, btnOn, btnOnce, btnOff].forEach(el => el.disabled = !enabled);
+        }
+        function initPlayer() {
+            if (player) { try { document.getElementById('audio-player').innerHTML = ''; } catch (e) { }; player = null; }
+            const options = {
+                type: 'media',
+                id: $('inpMediaId').value || 'MEDIA_ID',
+                player:'68a385a9d655e6a1d08a8c12',
+                autoplay: $('chkAutoplay').checked,
+                appName: 'appName',
+            };
+            loadMSPlayer('audio-player', options).then(p => {
+                player = p;
+                setControlsEnabled(true);
+                addLog('ready', options);
+                player.on('play', () => addLog('play'));
+                player.on('pause', () => addLog('pause'));
+                player.on('ended', () => addLog('end'));
+                player.on('error', (e) => addLog('error', e));
+            }).catch(e => { addLog('error', e); setControlsEnabled(false); });
+            addLog('init', options);
+        }
+        btnInit.addEventListener('click', initPlayer);
+        btnPlay.addEventListener('click', () => player?.play?.());
+        btnPause.addEventListener('click', () => player?.pause?.());
+        btnDestroy.addEventListener('click', () => { player?.destroy?.(); setControlsEnabled(false); addLog('destroy'); });
+        btnLoad.addEventListener('click', () => player?.load?.({ type: 'media', id: '5f7f563e34cd7e08221af329', appName: 'appName' }));
+        btnAddToPlaylist.addEventListener('click', () => player?.addToPlaylist?.({ type: 'media', id: '5f7f563e34cd7e08221af329', appName: 'appName' }));
+        function onPlayEvent() { addLog('Evento: play'); }
+        function onPauseOnceEvent() { addLog('Evento: pause (once)'); }
+        btnOn.addEventListener('click', () => { player?.on?.('play', onPlayEvent); addLog('player.on("play", ...)'); });
+        btnOnce.addEventListener('click', () => { player?.once?.('pause', onPauseOnceEvent); addLog('player.once("pause", ...)'); });
+        btnOff.addEventListener('click', () => { player?.off?.('play', onPlayEvent); addLog('player.off("play", ...)'); });
+        btnClear.addEventListener('click', clearLog);
+        window.addEventListener('DOMContentLoaded', () => initPlayer());
+    </script>
+</body>
+
+</html>

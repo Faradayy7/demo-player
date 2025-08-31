@@ -9,12 +9,16 @@
     <div id="player-div"></div>
     <script>
         loadMSPlayer('player-div', {
-            type: 'live',
-            id: '62d59a693a25cf04307833f7',
+            type: 'media',
+            id: '68a7a686280b8af6abde6717',
             player:'671952317bd72f8c97242fc9',
-            autoplay: false,
+            autoplay: true,
+            volume:1,
+            renderAs:"video",
+            ads:{
+                volume:0
+            },
             appName: 'appName'
-            ads
         }).then(player => {
             
             /**

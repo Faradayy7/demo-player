@@ -247,6 +247,10 @@
                         <span style="min-width:90px">Alto</span>
                         <input id="inpH" type="number" value="450" min="180" />
                     </label>
+                    <label class="row">
+                        <span style="min-width:90px">resnder As</span>
+                        <input id="render" type="string" value="video" />
+                    </label>
                 </div>
                 <div class="row" style="margin-top:8px">
                     <button id="btnInit" class="primary">Crear/Reset Player</button>
@@ -379,62 +383,45 @@
                 id: $('inpMediaId').value || 'MEDIA_ID',
                 player: $('inpPlayerId').value || 'PLAYER_ID',
                 autoplay: $('chkAutoplay').checked,
+                showRelatedRecords:false,
                 appName: 'appName',
-                adsMap:'https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/external/single_preroll_skippable&sz=640x480&ciu_szs=300x250%2C728x90&gdfp_req=1&output=vast&unviewed_position_start=1&env=vp&impl=s&correlator='
+                
             };
             loadMSPlayer('lightning-player', options).then(p => {
                 player = p;
                 window.lightning.player = player;
                 setControlsEnabled(true);
                 addLog('ready', options);
-                // Eventos principales
-                player.on('play', () => addLog('play'));
-                player.on('pause', () => addLog('pause'));
-                player.on('ended', () => addLog('end'));
-                player.on('error', (e) => addLog('error', e));
-                player.on('timeupdate', (t) => {
-                    // Mostrar solo segundos enteros
-                    let sec = t;
-                    if (typeof t === 'number') sec = Math.floor(t);
-                    addLog('timeupdate', sec);
-                });
-                player.on('volumechange', (v) => { lblVol.textContent = `vol: ${Math.round((v ?? 0) * 100)}`; addLog('volumechange', v); });
-                player.on('seeked', (t) => addLog('seeked', t));
-                // Eventos de Ads
-                const adsEvents = [
-                    'adsAdBreakReady',
-                    'adsAdMetadata',
-                    'adsAllAdsCompleted',
-                    'adsClick',
-                    'adsComplete',
-                    'adsContentPauseRequested',
-                    'adsContentResumeRequested',
-                    'adsDurationChange',
-                    'adsFirstQuartile',
-                    'adsImpression',
-                    'adsLinearChanged',
-                    'adsLoaded',
-                    'adsLog',
-                    'adsMidpoint',
-                    'adsPaused',
-                    'adsResumed',
-                    'adsSkippableStateChanged',
-                    'adsSkipped',
-                    'adsStarted',
-                    'adsThirdQuartile',
-                    'adsTimeUpdate',
-                    'adsUserClose',
-                    'adsVolumeChanged',
-                    'adsVolumeMuted',
-                    'adsError',
-                    'adsAdBuffering',
-                    'adsAdProgress',
-                    'adsInteraction',
-                    'adsVideoClicked',
-                    'adsVideoIconClicked'
+                // Eventos principales y extendidos
+                const allEvents = [
+                    // Custom/Player events
+                    'loaded', 'sourcechange', 'error', 'ready', 'buffering', 'programdatetime', 'adblockerDetected', 'share',
+                    // HTML5 events
+                    'abort', 'canplay', 'canplaythrough', 'durationchange', 'emptied', 'ended', 'loadeddata', 'loadedmetadata',
+                    'loadstart', 'pause', 'play', 'playing', 'progress', 'ratechange', 'seeked', 'seeking', 'stalled', 'suspend',
+                    'timeupdate', 'volumechange', 'waiting',
+                    // Ads events
+                    'adsAdBreakReady', 'adsAdMetadata', 'adsAllAdsCompleted', 'adsClick', 'adsComplete',
+                    'adsContentPauseRequested', 'adsContentResumeRequested', 'adsDurationChange', 'adsFirstQuartile',
+                    'adsImpression', 'adsLinearChanged', 'adsLoaded', 'adsLog', 'adsMidpoint', 'adsPaused',
+                    'adsResumed', 'adsSkippableStateChanged', 'adsSkipped', 'adsStarted', 'adsThirdQuartile',
+                    'adsTimeUpdate', 'adsUserClose', 'adsVolumeChanged', 'adsVolumeMuted', 'adsError',
+                    'adsAdBuffering', 'adsAdProgress', 'adsInteraction', 'adsVideoClicked', 'adsVideoIconClicked'
                 ];
-                adsEvents.forEach(evt => {
-                    player.on(evt, (data) => addLog(evt, data || {}));
+                // Para evitar logs duplicados, usar un Set
+                const loggedEvents = new Set();
+                allEvents.forEach(evt => {
+                    player.on(evt, (data) => {
+                        // Mostrar solo segundos enteros para timeupdate
+                        if (evt === 'timeupdate' && typeof data === 'number') {
+                            addLog(evt, Math.floor(data));
+                        } else if (evt === 'volumechange' && lblVol) {
+                            lblVol.textContent = `vol: ${Math.round((data ?? 0) * 100)}`;
+                            addLog(evt, data);
+                        } else {
+                            addLog(evt, data);
+                        }
+                    });
                 });
                 // poblar calidades si hay
                 populateLevels();
